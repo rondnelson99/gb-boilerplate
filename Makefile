@@ -25,22 +25,18 @@ else
     MKDIR_P := -mkdir
 endif
 
-# Shortcut if you want to use a local copy of RGBDS
-RGBDS   :=
-RGBASM  := $(RGBDS)rgbasm
-RGBLINK := $(RGBDS)rgblink
-RGBFIX  := $(RGBDS)rgbfix
+# Shortcut if you want to use a local copy of WLA
+WLA     := 
+WLA6502 := $(WLA)wla-6502
+WLALINK := $(WLA)wlalink
 
 ROM = $(BINDIR)/$(ROMNAME).$(ROMEXT)
 
 # Argument constants
 INCDIRS  = src/ src/include/
-WARNINGS = all extra
-ASFLAGS  = -p $(PADVALUE) $(addprefix -i,$(INCDIRS)) $(addprefix -W,$(WARNINGS))
-LDFLAGS  = -p $(PADVALUE)
-FIXFLAGS = -p $(PADVALUE) -v -i "$(GAMEID)" -k "$(LICENSEE)" -l $(OLDLIC) -m $(MBC) -n $(VERSION) -r $(SRAMSIZE) -t $(TITLE)
-
-# The list of "root" ASM files that RGBASM will be invoked on
+ASFLAGS  =  $(addprefix -I ,$(INCDIRS)) 
+LDFLAGS  = 
+# The list of "root" ASM files that WLA will be invoked on
 SRCS = $(wildcard src/*.asm)
 
 ## Project-specific configuration
@@ -79,19 +75,19 @@ rebuild:
 ###############################################
 
 # How to build a ROM
-$(BINDIR)/%.$(ROMEXT) $(BINDIR)/%.sym $(BINDIR)/%.map: $(patsubst src/%.asm,$(OBJDIR)/%.o,$(SRCS))
+$(BINDIR)/%.$(ROMEXT) $(BINDIR)/%.sym: $(patsubst src/%.asm,$(OBJDIR)/%.o,$(SRCS))
 	@$(MKDIR_P) $(@D)
-	$(RGBASM) $(ASFLAGS) -o $(OBJDIR)/build_date.o src/res/build_date.asm
-	$(RGBLINK) $(LDFLAGS) -m $(BINDIR)/$*.map -n $(BINDIR)/$*.sym -o $(BINDIR)/$*.$(ROMEXT) $^ $(OBJDIR)/build_date.o \
-	&& $(RGBFIX) -v $(FIXFLAGS) $(BINDIR)/$*.$(ROMEXT)
+	$(WLALINK) $(LDFLAGS)  -S  -s  -r linkfile $(BINDIR)/$*.$(ROMEXT) 
 
 # `.mk` files are auto-generated dependency lists of the "root" ASM files, to save a lot of hassle.
 # Also add all obj dependencies to the dep file too, so Make knows to remake it
-# Caution: some of these flags were added in RGBDS 0.4.0, using an earlier version WILL NOT WORK
-# (and produce weird errors)
-$(OBJDIR)/%.o $(DEPDIR)/%.mk: src/%.asm
+
+	
+
+$(OBJDIR)/%.o $(DEPDIR)/%.mk : src/%.asm
 	@$(MKDIR_P) $(patsubst %/,%,$(dir $(OBJDIR)/$* $(DEPDIR)/$*))
-	$(RGBASM) $(ASFLAGS) -M $(DEPDIR)/$*.mk -MG -MP -MQ $(OBJDIR)/$*.o -MQ $(DEPDIR)/$*.mk -o $(OBJDIR)/$*.o $<
+	$(WLA6502) $(ASFLAGS) -M $< > $(DEPDIR)/$*.mk
+	$(WLA6502) $(ASFLAGS) -o $(OBJDIR)/$*.o $<
 
 ifneq ($(MAKECMDGOALS),clean)
 -include $(patsubst src/%.asm,$(DEPDIR)/%.mk,$(SRCS))
